@@ -98,15 +98,15 @@ const initGame = () => {
 		return (gameOver = true)
 	}
 
-	// if (snakeX <= 0) {
-	// 	snakeX = 30
-	// } else if (snakeX > 30) {
-	// 	snakeX = 1
-	// } else if (snakeY <= 0) {
-	// 	snakeY = 30
-	// } else if (snakeY > 30) {
-	// 	snakeY = 1
-	// }
+	if (snakeX <= 0) {
+		snakeX = 30
+	} else if (snakeX > 30) {
+		snakeX = 1
+	} else if (snakeY <= 0) {
+		snakeY = 30
+	} else if (snakeY > 30) {
+		snakeY = 1
+	}
 
 	// Add div for each part of snake body
 	for (let i = 0; i < snakeBody.length; i++) {
