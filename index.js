@@ -94,9 +94,9 @@ const initGame = () => {
 	console.log(snakeBody)
 
 	//Check snake body is out of the wall or no
-	if (snakeX <= 0 || snakeX > 30 || snakeY <= 0 || snakeY > 30) {
-		return (gameOver = true)
-	}
+// 	if (snakeX <= 0 || snakeX > 30 || snakeY <= 0 || snakeY > 30) {
+// 		return (gameOver = true)
+// 	}
 
 	if (snakeX <= 0) {
 		snakeX = 30
