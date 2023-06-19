@@ -1,124 +1,185 @@
-'use strict'
-const playBoard = document.querySelector('.play-board')
-const scoreElement = document.querySelector('.score')
-const highScoreElement = document.querySelector('.high-score')
-const controls = document.querySelectorAll('.controls i')
+const rotateBtn = document.querySelector('#rotate-button');
+const optionCont = document.querySelector('.option-container');
+const messageCont = document.querySelector('.game-message');
+const gamesGridCont = document.querySelector('#gamesGrid-container');
+const highScoreElement = document.querySelector('.high-score');
+const scoreElement = document.querySelector('.score');
 
-let gameOver = false
-let foodX, foodY
-let snakeX = 15,
-	snakeY = 15
-let velocityX = 0,
-	velocityY = 0
-let snakeBody = []
-let setIntervalID
-let score = 0
-let speed = 1
+const blockWidth = 10;
+let foundShipsCount = 0;
+let score = 0;
 
 // Get high score from local storage
+let highScore = localStorage.getItem('high-score') || 0;
+highScoreElement.innerText = `High Score: ${highScore}`;
 
-let highScore = localStorage.getItem('high-score') || 0
-highScoreElement.innerText = `High Score: ${highScore}`
+function createGrid(color, user) {
+	const gameBlockContainer = document.createElement('div');
 
-// Pass a random bectween 1 and 30 as food position;
+	gameBlockContainer.classList.add('game-grid');
+	gameBlockContainer.style.backgroundColor = color;
+	gameBlockContainer.id = user;
 
-const updateFoodPosition = () => {
-	foodX = Math.floor(Math.random() * 30) + 1
-	foodY = Math.floor(Math.random() * 30) + 1
+	for (let i = 0; i < blockWidth * blockWidth; i++) {
+		const block = document.createElement('div');
+		block.classList.add('block');
+		block.id = i;
+		gameBlockContainer.append(block);
+	}
+	gamesGridCont.append(gameBlockContainer);
 }
+createGrid('#d6cdcd', 'computer');
 
-const handleGameOver = () => {
-	clearInterval(setIntervalID)
-	alert('Game Over! Press OK to replay...')
-	location.reload()
-}
-
-//Change velocity value based on ket press
-
-const changeDirection = e => {
-	if (e.key === 'ArrowUp' && velocityY != 1) {
-		velocityX = 0
-		velocityY = -speed
-	} else if (e.key === 'ArrowDown' && velocityY != -1) {
-		velocityX = 0
-		velocityY = speed
-	} else if (e.key === 'ArrowLeft' && velocityX != 1) {
-		velocityX = -speed
-		velocityY = 0
-	} else if (e.key === 'ArrowRight' && velocityX != -1) {
-		velocityX = speed
-		velocityY = 0
+class Ship {
+	constructor(name, length) {
+		this.name = name;
+		this.length = length;
 	}
 }
 
-//Change direction on each key click
+const destroyer = new Ship('destroyer', 2);
+const submarine = new Ship('submarine', 3);
+const cruiser = new Ship('cruiser', 3);
+const battleship = new Ship('battleship', 4);
+const carrier = new Ship('carrier', 5);
 
-controls.forEach(button =>
-	button.addEventListener('click', () =>
-		changeDirection({
-			key: button.dataset.key,
-		})
-	)
-)
+const ships = [destroyer, submarine, cruiser, battleship, carrier];
 
-const initGame = () => {
-	if (gameOver) return handleGameOver()
-	let html = `<div class = "food" style = "grid-area: ${foodY} / ${foodX}"></div>`
+function addShipPiece(ship) {
+	const allGridBlocks = document.querySelectorAll(`#computer div`);
 
-	// When nake eat food
-	if ((snakeX === foodX) & (snakeY === foodY)) {
-		updateFoodPosition()
+	let randomBoolean = Math.random() < 0.5;
+	let isHorizontal = randomBoolean;
+	let randomStartIndex = Math.floor(Math.random() * blockWidth * blockWidth);
+	let validStart;
 
-		snakeBody.push([foodY, foodX]) // Add food to snake body array
-		score++
-
-		highScore = score >= highScore ? score : highScore // if score > highscore => high score = score
-
-		localStorage.setItem('high-score', highScore)
-		scoreElement.innerText = `Score: ${score}`
-		highScoreElement.innerText = `High Score: ${highScore}`
-	}
-
-	// Update Snake Head
-	snakeX += velocityX
-	snakeY += velocityY
-
-	// Shifting forward values of elements in snake body by one
-	for (let i = snakeBody.length - 1; i > 0; i--) {
-		snakeBody[i] = snakeBody[i - 1]
-		console.log(i)
-	}
-
-	snakeBody[0] = [snakeX, snakeY]
-
-	console.log(snakeBody)
-
-	//Check snake body is out of the wall or no
-// 	if (snakeX <= 0 || snakeX > 30 || snakeY <= 0 || snakeY > 30) {
-// 		return (gameOver = true)
-// 	}
-
-	if (snakeX <= 0) {
-		snakeX = 30
-	} else if (snakeX > 30) {
-		snakeX = 1
-	} else if (snakeY <= 0) {
-		snakeY = 30
-	} else if (snakeY > 30) {
-		snakeY = 1
-	}
-
-	// Add div for each part of snake body
-	for (let i = 0; i < snakeBody.length; i++) {
-		html += `<div class='head' style="grid-area: ${snakeBody[i][1]} / ${snakeBody[i][0]}"></div>`
-		// Check snake head hit body or no
-		if (i !== 0 && snakeBody[0][1] === snakeBody[i][1] && snakeBody[0][0] === snakeBody[i][0]) {
-			gameOver = true
+	if (isHorizontal) {
+		if (randomStartIndex <= blockWidth * blockWidth - ship.length) {
+			validStart = randomStartIndex;
+		} else {
+			validStart = blockWidth * blockWidth - ship.length;
+		}
+	} else {
+		if (randomStartIndex <= blockWidth * blockWidth - blockWidth * ship.length) {
+			validStart = randomStartIndex;
+		} else {
+			validStart = randomStartIndex - ship.length * blockWidth + blockWidth;
 		}
 	}
-	playBoard.innerHTML = html
+	let shipBlocks = [];
+	for (let i = 0; i < ship.length; i++) {
+		if (isHorizontal) {
+			shipBlocks.push(allGridBlocks[Number(validStart) + i]);
+		} else {
+			shipBlocks.push(allGridBlocks[Number(validStart) + i * blockWidth]);
+		}
+	}
+	let valid = false;
+	if (isHorizontal) {
+		valid = shipBlocks.every(
+			(_shipBlock, index) => shipBlocks[0].id % blockWidth !== blockWidth - (shipBlocks.length - (index + 1))
+		);
+	} else {
+		valid = shipBlocks.every((_shipBlock, index) => shipBlocks[0].id < 90 + (blockWidth * index + 1));
+	}
+	const notTaken = shipBlocks.every(shipBlock => !shipBlock.classList.contains('taken'));
+	if (valid && notTaken) {
+		shipBlocks.forEach(shipBlock => {
+			shipBlock.classList.add(ship.name);
+			shipBlock.classList.add('taken');
+		});
+	} else {
+		addShipPiece(ship);
+	}
+}
+ships.forEach(ship => addShipPiece(ship));
+
+function handleClick(event) {
+	const targetBlock = event.target;
+	if (
+		targetBlock.classList.contains('empty') ||
+		targetBlock.classList.contains('boom') ||
+		targetBlock.classList.contains('game-grid')
+	) {
+		return;
+	}
+
+	if (targetBlock.classList.contains('taken')) {
+		targetBlock.classList.add('boom');
+		console.log(targetBlock.classList[1]);
+		const shipName = targetBlock.classList[1];
+		messageCont.innerHTML = `Boom! You hit a ${shipName}!`;
+		const shipBlocks = document.querySelectorAll(`.${targetBlock.classList[1]}`);
+		const allShipBlocksHit = Array.from(shipBlocks).every(shipBlock => shipBlock.classList.contains('boom'));
+		score++;
+		if (allShipBlocksHit) {
+			messageCont.innerHTML += `<br>The ${shipName} sunk!`;
+			const shipToColor = document.querySelector(`.${shipName}-preview`);
+			console.log(shipToColor);
+			shipToColor.classList.remove('undestroyed-ship-color');
+			shipToColor.classList.add('destroyed-ship-color');
+			foundShipsCount++;
+			checkGameOver();
+		}
+	} else {
+		targetBlock.classList.add('empty');
+		messageCont.innerHTML = `You hit a block!`;
+		score++;
+	}
+	console.log(score);
+	scoreElement.innerText = `Current Score: ${100 - score}`;
+}
+gamesGridCont.addEventListener('click', handleClick);
+const resetBtn = document.querySelector('#reset-button');
+resetBtn.addEventListener('click', resetGame);
+
+function checkGameOver() {
+	if (foundShipsCount === ships.length) {
+		const totalMoves = document.querySelectorAll('.boom').length + document.querySelectorAll('.empty').length;
+		let  score = 100 - totalMoves;
+		messageCont.innerHTML = `Congratulations! <br>You have sunk all the ships! <br>Total moves: ${totalMoves}`;
+
+		highScore = totalMoves >= highScore ? totalMoves : highScore; // if score > highscore => high score = score
+
+		localStorage.setItem('high-score', highScore);
+		highScoreElement.innerText = `High Score: ${highScore}`;
+	}
 }
 
-updateFoodPosition()
-setIntervalID = setInterval(initGame, 100)
-document.addEventListener('keyup', changeDirection)
+function startNewGame() {
+	resetGame();
+	foundShipsCount = 0;
+	messageCont.innerHTML = '';
+}
+
+function resetGame() {
+	const shipBlocks = document.querySelectorAll('.taken');
+	shipBlocks.forEach(shipBlock => {
+		shipBlock.classList.remove('taken');
+		shipBlock.classList.remove('destroyer');
+		shipBlock.classList.remove('submarine');
+		shipBlock.classList.remove('cruiser');
+		shipBlock.classList.remove('battleship');
+		shipBlock.classList.remove('carrier');
+	});
+
+	const shipOptionsBlocks = document.querySelectorAll('.destroyed-ship-color');
+	shipOptionsBlocks.forEach(shipOptionBlock => {
+		shipOptionBlock.classList.remove('destroyed-ship-color');
+		shipOptionBlock.classList.add('undestroyed-ship-color');
+	});
+
+	const boomBlocks = document.querySelectorAll('.boom');
+	boomBlocks.forEach(boomBlock => {
+		boomBlock.classList.remove('boom');
+	});
+
+	const emptyBlocks = document.querySelectorAll('.empty');
+	emptyBlocks.forEach(emptyBlock => {
+		emptyBlock.classList.remove('empty');
+	});
+
+	ships.forEach(ship => addShipPiece(ship));
+
+	messageCont.innerHTML = '';
+}
